@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Reino Digital — reino multiplayer de acolhimento e reabilitação de criaturas.">
+<title>Reino Digital — Território Soberano de King Douglas I</title>
+<style>
+:root{
+  --bg-deep:#04060a;--bg-panel:#0b101b;--bg-card:#111929;--bg-card-hover:#162136;
+  --primary:#00d2ff;--primary-glow:rgba(0,210,255,.38);--gold:#f5a623;--gold-glow:rgba(245,166,35,.42);
+  --text-main:#f0f6fc;--text-muted:#8b949e;--border:#1e2636;--border-glow:#2f3b52;
+  --success:#2ea043;--danger:#e5534b;--purple:#9b59b6;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:var(--bg-deep) radial-gradient(circle at 50% 10%,#101e38 0%,var(--bg-deep) 85%);color:var(--text-main);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12px;overflow-x:hidden}
+.overlay-screen{position:fixed;inset:0;background:rgba(4,6,10,.95);display:flex;justify-content:center;align-items:center;z-index:1000;backdrop-filter:blur(10px);padding:15px}
+#creature-modal,#rescue-modal,#setup-screen{display:none;z-index:1600}
+.modal-card{background:linear-gradient(180deg,#0f1626 0%,#090d16 100%);border:2px solid var(--primary);box-shadow:0 0 55px var(--primary-glow);padding:28px 24px;border-radius:22px;text-align:center;max-width:440px;width:100%;max-height:94vh;overflow-y:auto}
+.modal-card.gold-border{border-color:var(--gold);box-shadow:0 0 55px var(--gold-glow)}
+.modal-card h1{color:var(--primary);font-size:2rem;margin-bottom:8px}
+.modal-card h2{color:var(--gold);margin-bottom:12px;font-size:1.4rem}
+.auth-input,.select-input{width:100%;padding:12px;background:var(--bg-deep);border:1px solid var(--border-glow);border-radius:12px;color:var(--text-main);font-size:.95rem;margin-bottom:12px;text-align:center}
+.auth-input:focus,.chat-input-box:focus,.admin-input:focus{border-color:var(--primary);outline:none;box-shadow:0 0 12px var(--primary-glow)}
+.auth-error{color:var(--danger);font-size:.85rem;min-height:1.2em;margin-bottom:8px}
+.auth-ok{color:#7ee787;font-size:.85rem;margin-bottom:8px}
+.auth-note{color:var(--text-muted);font-size:.75rem;margin-top:12px;line-height:1.4}
+.auth-switch{background:none;border:none;color:var(--primary);cursor:pointer;margin-top:12px;font-size:.85rem;text-decoration:underline}
+#game-container{display:none;width:100%;max-width:1160px;height:93vh;max-height:860px;background:var(--bg-panel);border:1px solid var(--border-glow);border-radius:22px;box-shadow:0 25px 70px rgba(0,0,0,.9);flex-direction:column;overflow:hidden;position:relative}
+header{background:#080c15;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;z-index:10}
+.profile-chip{display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);padding:6px 15px;border-radius:30px}
+.avatar-circle{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--gold));color:#05070a;font-weight:bold;display:flex;align-items:center;justify-content:center;border:none;font-size:1rem}
+.wallet-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trdx-pill{background:rgba(245,166,35,.15);border:1px solid var(--gold);color:var(--gold);padding:6px 14px;border-radius:20px;font-weight:bold}
+.online-pill{background:rgba(46,160,67,.15);border:1px solid var(--success);color:#7ee787;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:600}
+.nav-tabs{display:flex;background:#060a12;border-bottom:1px solid var(--border);overflow-x:auto;z-index:10}
+.tab-btn{flex:1;padding:13px 10px;background:none;border:none;color:var(--text-muted);font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-size:.84rem}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);background:rgba(0,210,255,.07)}
+.tab-btn.royal-tab{color:var(--gold);display:none}
+.tab-btn.royal-tab.active{border-bottom-color:var(--gold);background:rgba(245,166,35,.12)}
+.tab-content{flex:1;padding:22px;overflow-y:auto;display:none;position:relative;z-index:5}
+.tab-content.active{display:block}
+.btn{background:linear-gradient(135deg,#0066e6,#00d2ff);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:bold;cursor:pointer;box-shadow:0 4px 12px var(--primary-glow);font-size:.86rem}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn-gold{background:linear-gradient(135deg,#cc6600,var(--gold));box-shadow:0 4px 12px var(--gold-glow)}
+.btn-danger{background:linear-gradient(135deg,#8e2424,var(--danger));padding:7px 12px;font-size:.8rem;box-shadow:none}
+.btn-success{background:linear-gradient(135deg,#1b7a36,var(--success));box-shadow:none}
+.btn-ghost{background:var(--bg-card);border:1px solid var(--border-glow);box-shadow:none;color:var(--text-main)}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:15px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:18px;transition:.2s}
+.card.clickable:hover{border-color:var(--primary);transform:translateY(-3px);cursor:pointer;background:var(--bg-card-hover)}
+.card.active-guardian{border:2px solid var(--gold);box-shadow:0 0 20px var(--gold-glow)}
+.card.royal-panel{border:1px solid var(--gold);background:linear-gradient(180deg,#172036 0%,#0f1524 100%)}
+.card.fainted{opacity:.6;filter:grayscale(.6)}
+.creature-img-box{width:88px;height:88px;margin:8px auto 12px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.08) 0%,rgba(4,6,10,.9) 75%);border:2px solid var(--border-glow);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:2.6rem}
+.creature-img-box img{width:100%;height:100%;object-fit:cover}
+.stat-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.86rem}
+.stat-table th{color:var(--text-muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border-glow);font-size:.75rem;text-transform:uppercase}
+.stat-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:center}
+.stat-table td:first-child,.stat-table th:first-child{text-align:left}
+.stat-table td.iv{color:var(--gold)}
+.stat-table td.tot{color:var(--primary);font-weight:bold}
+.stat-table tr.sum td{border-top:2px solid var(--border-glow);font-weight:bold}
+.power-chip{display:inline-block;background:rgba(0,210,255,.12);border:1px solid var(--primary);color:var(--primary);padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:bold}
+.muted{color:var(--text-muted);font-size:.85rem}
+.hp-bar{width:140px;max-width:100%;height:10px;background:#05070a;border-radius:6px;overflow:hidden;margin:6px auto 0;border:1px solid var(--border)}
+.hp-bar.wide{width:100%}
+.hp-fill{height:100%;background:var(--success);transition:width .3s}
+.hp-fill.enemy{background:var(--danger)}
+.hp-fill.low{background:var(--danger)}
+@keyframes glowGreen{0%{box-shadow:0 0 5px var(--success),0 0 10px var(--success);border-color:var(--success)}50%{box-shadow:0 0 30px var(--success),0 0 50px var(--success);border-color:#fff;transform:scale(1.03)}100%{box-shadow:0 0 5px var(--success),0 0 10px var(--success);border-color:var(--success)}}
+@keyframes glowPurple{0%{box-shadow:0 0 5px var(--purple),0 0 10px var(--purple);border-color:var(--purple)}50%{box-shadow:0 0 35px var(--purple),0 0 55px #e056fd;border-color:#fff;transform:scale(1.05)}100%{box-shadow:0 0 5px var(--purple),0 0 10px var(--purple);border-color:var(--purple)}}
+.magic-heal-green{animation:glowGreen .9s ease-in-out}
+.magic-heal-purple{animation:glowPurple 1.1s ease-in-out}
+.weather-container{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1;border-radius:22px}
+.rain-drop{position:absolute;top:-30px;background:linear-gradient(transparent,var(--primary));width:1px;height:20px;opacity:.6;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(900px)}}
+.wind-line{position:absolute;left:-20%;height:1px;width:120px;background:linear-gradient(90deg,transparent,rgba(200,220,255,.5),transparent);animation:blow linear infinite}
+@keyframes blow{to{transform:translateX(140vw)}}
+.sun-ray{position:absolute;top:-50px;right:-50px;width:250px;height:250px;background:radial-gradient(circle,rgba(245,166,35,.22) 0%,transparent 70%);border-radius:50%;animation:pulseSun 4s ease-in-out infinite alternate}
+.sun-ray.hot{background:radial-gradient(circle,rgba(229,83,75,.35) 0%,transparent 70%);width:340px;height:340px}
+@keyframes pulseSun{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.25);opacity:.9}}
+.aurora{position:absolute;inset:0;background:linear-gradient(120deg,rgba(0,210,255,.12),rgba(155,89,182,.15),rgba(46,160,67,.12));background-size:300% 300%;animation:aur 8s ease infinite}
+@keyframes aur{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.ranking-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.88rem;text-align:left}
+.ranking-table th,.ranking-table td{padding:9px 10px;border-bottom:1px solid var(--border)}
+.ranking-table th{color:var(--gold)}
+.ranking-table tr.me td{background:rgba(0,210,255,.08)}
+.chat-wrap{display:flex;flex-direction:column;height:calc(100% - 40px);min-height:320px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:12px}
+.chat-categories{display:flex;background:#080c15;border-bottom:1px solid var(--border);overflow-x:auto}
+.cat-btn{flex:1;padding:10px;background:none;border:none;color:var(--text-muted);font-weight:bold;cursor:pointer;font-size:.84rem;white-space:nowrap}
+.cat-btn.active{color:var(--gold);background:rgba(245,166,35,.1);border-bottom:2px solid var(--gold)}
+.cat-btn .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:4px}
+.dm-bar{display:none;padding:8px 12px;background:#0c1322;border-bottom:1px solid var(--border);align-items:center;gap:8px;font-size:.85rem}
+.dm-bar input{background:var(--bg-deep);color:var(--text-main);border:1px solid var(--primary);padding:6px 10px;border-radius:8px;flex:1}
+.chat-box{flex:1;padding:15px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg{background:#070b13;padding:10px 14px;border-radius:10px;border-left:3px solid var(--primary);font-size:.9rem;word-break:break-word}
+.msg.king{border-left:4px solid var(--gold);background:rgba(245,166,35,.12)}
+.msg.official{border-left:4px solid var(--gold);background:linear-gradient(90deg,rgba(245,166,35,.15) 0%,#070b13 100%)}
+.msg .who{font-weight:bold}
+.chat-form{display:flex;padding:10px;background:#080c15;border-top:1px solid var(--border);gap:8px}
+.chat-input-box{flex:1;padding:10px;background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;color:var(--text-main)}
+.arena{display:flex;justify-content:space-around;align-items:center;background:linear-gradient(135deg,#0d1526 0%,#141e33 100%);border:1px solid var(--border-glow);border-radius:16px;padding:20px;margin:15px 0;text-align:center;gap:10px}
+.combat-log{background:#04060a;border:1px solid var(--border);border-radius:10px;padding:12px;height:140px;overflow-y:auto;font-family:monospace;font-size:.85rem;color:#7ee787;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1;min-width:120px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg-panel);border:2px solid var(--gold);color:var(--text-main);padding:14px 22px;border-radius:12px;z-index:2000;display:none;font-weight:600;max-width:calc(100vw - 40px)}
+.admin-input{width:100%;padding:11px;background:var(--bg-deep);border:1px solid var(--gold);border-radius:10px;color:var(--text-main);margin-bottom:10px}
+@media(max-width:640px){#game-container{height:96vh;border-radius:14px}.tab-content{padding:14px}.arena{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="setup-screen" class="overlay-screen">
+  <div class="modal-card gold-border">
+    <h2>⚙️ Configuração necessária</h2>
+    <p class="muted" id="setup-msg" style="line-height:1.5"></p>
+  </div>
+</div>
+
+<div id="creature-modal" class="overlay-screen" onclick="if(event.target===this)closeCreatureModal()">
+  <div class="modal-card gold-border" id="creature-modal-content"></div>
+</div>
+
+<div id="rescue-modal" class="overlay-screen">
+  <div class="modal-card gold-border" id="rescue-modal-content"></div>
+</div>
+
+<div id="auth-screen" class="overlay-screen">
+  <form class="modal-card" id="auth-form" onsubmit="event.preventDefault();handleAuth()">
+    <h1>👑 REINO DIGITAL</h1>
+    <p class="muted" style="margin-bottom:16px">Território Soberano de <strong>King Douglas I</strong>.<br><span id="auth-sub">Entre na sua conta de cidadão:</span></p>
+    <input type="text" id="auth-name" class="auth-input" placeholder="Nome de Cidadão (3 a 22 letras/números)" maxlength="22" autocomplete="nickname" style="display:none">
+    <input type="email" id="auth-email" class="auth-input" placeholder="E-mail" autocomplete="email">
+    <input type="password" id="auth-pass" class="auth-input" placeholder="Senha (mín. 8 caracteres)" maxlength="72" autocomplete="current-password">
+    <select id="auth-starter" class="select-input" style="display:none">
+      <option value="pyrovig">🔥 Guardião Inicial: Pyrovig (Fogo)</option>
+      <option value="hidrocan">💧 Guardião Inicial: Hidrocan (Água)</option>
+      <option value="voltarix">⚡ Guardião Inicial: Voltarix (Elétrico)</option>
+      <option value="terrasol">🌿 Guardião Inicial: Terrasol (Terra)</option>
+    </select>
+    <div class="auth-error" id="auth-error" role="alert"></div>
+    <button class="btn" type="submit" id="auth-submit" style="width:100%">Entrar</button>
+    <button class="auth-switch" type="button" id="auth-toggle" onclick="toggleAuthMode()">Ainda não tenho conta — criar conta</button>
+    <p class="auth-note">Seu progresso fica salvo na nuvem do Reino e acompanha você em qualquer aparelho.</p>
+  </form>
+</div>
+
+<div id="game-container">
+  <header>
+    <div class="profile-chip">
+      <div class="avatar-circle" id="ui-avatar" aria-hidden="true">C</div>
+      <div>
+        <div style="font-weight:bold;font-size:.95rem"><span id="ui-name">Cidadão</span> <span id="ui-title" style="color:var(--gold);font-size:.78rem">• Cidadão</span></div>
+        <div class="muted" style="font-size:.75rem" id="ui-sub">Reino Digital</div>
+      </div>
+    </div>
+    <div class="wallet-bar">
+      <span class="online-pill" id="ui-online">🟢 Online: +3 TRDx/10min</span>
+      <span class="trdx-pill" id="ui-trdx">💠 0 TRDx</span>
+      <button class="btn btn-danger" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="hub" onclick="openTab('hub')">🏛️ Hub & Ranking</button>
+    <button class="tab-btn" data-tab="map" onclick="openTab('map')">🗺️ Mapa & Acolhimento</button>
+    <button class="tab-btn" data-tab="collection" onclick="openTab('collection')">🐉 Coleção (<span id="col-count">1</span>)</button>
+    <button class="tab-btn" data-tab="store" onclick="openTab('store')">🛒 Loja</button>
+    <button class="tab-btn" data-tab="colosseum" onclick="openTab('colosseum')">⚔️ Coliseu</button>
+    <button class="tab-btn" data-tab="chat" onclick="openTab('chat')">💬 Praça & Diário</button>
+    <button class="tab-btn royal-tab" id="tab-btn-admin" data-tab="admin" onclick="openTab('admin')">👑 Trono</button>
+  </nav>
+
+  <div id="tab-hub" class="tab-content active">
+    <h2>Economia Solidária & Histórico do Reino</h2>
+    <div class="grid-cards">
+      <div class="card"><h3 style="color:#7ee787;margin-bottom:8px">🟢 Bônus Online</h3><p class="muted">Com o jogo aberto você recebe <strong>+3 TRDx a cada 10 minutos</strong> (limite diário: 300 TRDx). <span id="ui-daily"></span></p></div>
+      <div class="card"><h3 style="color:var(--primary);margin-bottom:8px">🗺️ Acolhimento Humanitário</h3><p class="muted">Explore regiões com clima próprio e acolha criaturas. Quanto mais forte a criatura, mais difícil o acolhimento.</p></div>
+      <div class="card"><h3 style="color:var(--gold);margin-bottom:8px">💤 Descanso</h3><p class="muted">Seus Guardiões recuperam <strong>2% do HP por minuto</strong>, até com o jogo fechado. Poções e Elixir servem para quem tem pressa.</p></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3 style="color:var(--primary);margin-bottom:10px">🎒 Sua Mochila</h3>
+      <div id="ui-inventory" style="font-size:.92rem;line-height:1.9;margin-bottom:14px"></div>
+      <h3 style="color:var(--gold);margin-bottom:8px;border-top:1px solid var(--border);padding-top:12px">📜 Seu Histórico</h3>
+      <div id="ui-history" class="muted" style="max-height:140px;overflow-y:auto;background:var(--bg-deep);padding:10px;border-radius:8px">Nenhum registro ainda.</div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3 style="color:var(--gold);margin-bottom:6px">🏆 Ranking do Reino</h3>
+      <p class="muted">Cidadãos mais prósperos. "Poder" é o Poder Total da sua criatura mais forte (status + IV).</p>
+      <div id="ranking-list" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <div id="tab-map" class="tab-content">
+    <div id="weather-effect" class="weather-container"></div>
+    <h2 style="position:relative;z-index:2">🗺️ Mapa de Resgate e Acolhimento</h2>
+    <p class="muted" style="margin-top:4px;position:relative;z-index:2">Cada região tem seu clima e suas criaturas. Quanto mais alta, mais forte (e mais demorada a busca). Cada tentativa consome uma Esfera Ball.</p>
+    <div class="grid-cards" style="position:relative;z-index:2">
+      <div class="card clickable" onclick="explore(1)"><h3 style="color:var(--primary)">🌿 Nível 1 · Calmaria</h3><p class="muted" style="margin-top:6px">Criaturas Nv. 1–8 · busca 3s</p></div>
+      <div class="card clickable" onclick="explore(2)"><h3 style="color:var(--primary)">🌲 Nível 2 · Bosque</h3><p class="muted" style="margin-top:6px">Criaturas Nv. 9–16 · busca 5s</p></div>
+      <div class="card clickable" onclick="explore(3)"><h3 style="color:var(--gold)">⛰️ Nível 3 · Montanha</h3><p class="muted" style="margin-top:6px">Criaturas Nv. 17–24 · busca 8s</p></div>
+      <div class="card clickable" onclick="explore(4)"><h3 style="color:var(--gold)">🌋 Nível 4 · Vulcânica</h3><p class="muted" style="margin-top:6px">Criaturas Nv. 25–32 · busca 12s</p></div>
+      <div class="card clickable" onclick="explore(5)"><h3 style="color:var(--danger)">✨ Nível 5 · Santuário</h3><p class="muted" style="margin-top:6px">Criaturas Nv. 33–40 · busca 15s</p></div>
+    </div>
+  </div>
+
+  <div id="tab-collection" class="tab-content">
+    <div class="row" style="justify-content:space-between">
+      <div style="flex:3"><h2>Minha Coleção de Guardiões</h2><p class="muted" style="margin-top:4px">Status + IV = Total. Clique em uma criatura para inspecionar, curar ou equipar.</p></div>
+      <select id="sort-mode" class="select-input" style="flex:1;margin:0" onchange="renderCollection()">
+        <option value="power">Ordenar: Poder Total</option>
+        <option value="level">Ordenar: Nível</option>
+        <option value="recent">Ordenar: Mais recentes</option>
+      </select>
+    </div>
+    <div class="grid-cards" id="collection-grid"></div>
+  </div>
+
+  <div id="tab-store" class="tab-content">
+    <h2>🛒 Loja de Suprimentos & Acolhimento</h2>
+    <div class="grid-cards" id="store-grid"></div>
+  </div>
+
+  <div id="tab-colosseum" class="tab-content">
+    <h2>⚔️ Coliseu de Reabilitação</h2>
+    <p class="muted" style="margin-top:4px">Reabilite Guardiões necessitados para ganhar TRDx e EXP. Quanto maior a dificuldade, maior a recompensa.</p>
+    <div class="arena" id="arena"></div>
+    <div id="arena-controls" style="margin-bottom:14px"></div>
+    <div class="combat-log" id="combat-log" aria-live="polite"></div>
+  </div>
+
+  <div id="tab-chat" class="tab-content" style="height:100%">
+    <h2>💬 Praça, Chat & Diário Oficial</h2>
+    <div class="chat-wrap">
+      <div class="chat-categories" id="chat-cats">
+        <button class="cat-btn active" data-cat="geral" onclick="switchChatCat('geral')">📢 Geral</button>
+        <button class="cat-btn" data-cat="fe" onclick="switchChatCat('fe')">🙏 Fé</button>
+        <button class="cat-btn" data-cat="comercio" onclick="switchChatCat('comercio')">💰 Comércio</button>
+        <button class="cat-btn" data-cat="privado" onclick="switchChatCat('privado')">🔒 Privado</button>
+        <button class="cat-btn" data-cat="diario" style="color:var(--gold)" onclick="switchChatCat('diario')">📜 Diário Oficial</button>
+      </div>
+      <div class="dm-bar" id="dm-target-bar"><span>Para:</span><input type="text" id="dm-recipient" list="dm-list" placeholder="nome do cidadão" maxlength="22"><datalist id="dm-list"></datalist></div>
+      <div class="chat-box" id="chat-box"></div>
+      <div class="chat-form" id="chat-form-box">
+        <input type="text" class="chat-input-box" id="chat-input" placeholder="Escreva..." maxlength="160" onkeydown="if(event.key==='Enter')sendChatMsg()">
+        <button class="btn" onclick="sendChatMsg()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-admin" class="tab-content">
+    <h2 style="color:var(--gold)">👑 Trono Soberano de King Douglas I</h2>
+    <p class="muted" style="margin-top:4px">Todos os poderes abaixo são verificados no servidor: só a conta do Soberano consegue usá-los.</p>
+    <div class="grid-cards">
+      <div class="card royal-panel">
+        <h3 style="color:var(--gold);margin-bottom:8px">📜 Diário Oficial</h3>
+        <p class="muted" style="margin-bottom:10px">Decretos e notícias aparecem para todo o Reino.</p>
+        <button class="btn btn-gold" style="width:100%" onclick="openTab('chat');switchChatCat('diario')">Abrir o Diário Oficial</button>
+      </div>
+      <div class="card royal-panel">
+        <h3 style="color:var(--primary);margin-bottom:8px">💠 Tesouro Soberano</h3>
+        <input type="number" id="king-amount" class="admin-input" value="1000" min="1" max="100000">
+        <button class="btn" style="width:100%" onclick="kingIssue()">Emitir TRDx para o Tesouro</button>
+      </div>
+      <div class="card royal-panel">
+        <h3 style="color:var(--gold);margin-bottom:8px">🐉 Convocar Criatura</h3>
+        <select id="king-species" class="admin-input">
+          <option value="pyrovig">🔥 Pyrovig</option><option value="hidrocan">💧 Hidrocan</option>
+          <option value="voltarix">⚡ Voltarix</option><option value="terrasol">🌿 Terrasol</option>
+        </select>
+        <input type="number" id="king-level" class="admin-input" value="1" min="1" max="99" placeholder="Nível (1 a 99)">
+        <label class="muted" style="display:block;margin-bottom:10px"><input type="checkbox" id="king-perfect"> IVs perfeitos (31/31/31/31)</label>
+        <button class="btn btn-gold" style="width:100%" onclick="kingSpawn()">Convocar</button>
+        <p class="muted" style="margin-top:8px">Nv. 16 = 1ª evolução · Nv. 36 = Evolução Suprema.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<noscript><p style="color:#fff">Ative o JavaScript para jogar o Reino Digital.</p></noscript>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+'use strict';
+
+/* ================= CONSTANTES ================= */
+const ITEMS = {
+  potion1:{icon:'🧪',name:'Poção de Cura N1',desc:'Recupera +30 HP',cost:50},
+  potion2:{icon:'🧪',name:'Poção de Cura N2',desc:'Recupera +60 HP',cost:100},
+  potion3:{icon:'🧪',name:'Poção de Cura N3',desc:'Recupera +120 HP',cost:200},
+  elixir:{icon:'✨',name:'Elixir de Cura',desc:'Restaura o HP total',cost:300,gold:true},
+  ball1:{icon:'🔵',name:'Esfera Ball N1',desc:'Esfera de acolhimento padrão',cost:80},
+  ball2:{icon:'🟢',name:'Esfera Ball N2',desc:'+10% de chance de acolhimento',cost:180},
+  ball3:{icon:'🟡',name:'Esfera Ball N3',desc:'+25% de chance de acolhimento',cost:350,gold:true}
+};
+const ELEM_EMOJI = {pyrovig:'🔥',hidrocan:'💧',voltarix:'⚡',terrasol:'🌿'};
+const WEATHER = {1:'sun',2:'rain',3:'wind',4:'heat',5:'aurora'};
+const DIFFS = {facil:'Fácil (recompensa menor)',normal:'Normal (recomendado)',dificil:'Difícil (recompensa maior)'};
+const NAME_RE = /^[A-Za-zÀ-ÿ0-9 _.-]{3,22}$/;
+
+/* ================= ESTADO ================= */
+let sb = null;               // cliente Supabase
+let S = null;                // estado do jogador (vem do servidor)
+let busy = false;
+let authMode = 'login';
+let currentTab = 'hub';
+let toastTimer = null, wildTimer = null, bonusTimer = null, refreshTimer = null, chatTimer = null, rankTimer = null;
+let arena = {log:[], pHp:null, pMax:null, eHp:null, eMax:null};
+const chat = {cat:'geral', list:{}, seen:{}, lastId:{}, unread:{}};
+let ranking = [];
+
+/* ================= UTILITÁRIOS ================= */
+const $ = id => document.getElementById(id);
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function toast(txt){
+  const t = $('toast'); t.textContent = txt; t.style.display = 'block';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3600);
+}
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function cleanErr(e){
+  let m = (e && e.message) ? e.message : String(e);
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Sem conexão com o Reino. Verifique sua internet.';
+  if(/JWT|expired/i.test(m)) return 'Sua sessão expirou. Entre novamente.';
+  return m;
+}
+async function rpc(fn, args){
+  const {data, error} = await sb.rpc(fn, args || {});
+  if(error) throw error;
+  return data;
+}
+// Executa uma ação do jogo no servidor e devolve {ok, data}. Bloqueia cliques duplos.
+async function act(fn, args){
+  if(busy) return {ok:false};
+  busy = true;
+  try{ const data = await rpc(fn, args); return {ok:true, data}; }
+  catch(e){ toast('⚠️ ' + cleanErr(e)); return {ok:false}; }
+  finally{ busy = false; }
+}
+const me = () => S && S.profile;
+const isKing = () => me() && me().role === 'king';
+const findC = id => S && S.creatures.find(c => c.id === id);
+function activeC(){ return findC(me().active_creature) || S.creatures[0]; }
+function rescueChance(level, ball){
+  const bonus = ball === 'ball2' ? 10 : ball === 'ball3' ? 25 : 0;
+  return Math.min(95, Math.max(10, Math.round(55 - level * 0.7 + bonus)));
+}
+function artHTML(speciesId, stage, name){
+  const file = 'img/' + speciesId + (stage > 0 ? '_evol' + stage : '') + '.png';
+  const emoji = ELEM_EMOJI[speciesId] || '🐾';
+  return '<img src="' + esc(file) + '" alt="' + esc(name) + '" data-fb="' + emoji + '" onerror="this.replaceWith(document.createTextNode(this.dataset.fb))">';
+}
+const stageOfLevel = l => l >= 36 ? 2 : (l >= 16 ? 1 : 0);
+
+/* ================= ÁUDIO (sintetizado, criado sob demanda) ================= */
+let audioCtx = null;
+function tone(type, freqs, dur, vol){
+  try{
+    if(!audioCtx){ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return; audioCtx = new AC(); }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(), now = audioCtx.currentTime;
+    osc.type = type; osc.connect(gain); gain.connect(audioCtx.destination);
+    freqs.forEach(([f,t,exp]) => { if(exp) osc.frequency.exponentialRampToValueAtTime(f, now + t); else osc.frequency.setValueAtTime(f, now + t); });
+    gain.gain.setValueAtTime(vol, now); gain.gain.exponentialRampToValueAtTime(0.01, now + dur);
+    osc.start(now); osc.stop(now + dur);
+  }catch(e){}
+}
+const SOUNDS = {
+  click:()=>tone('sine',[[400,0],[800,.08,1]],.08,.1),
+  heal_green:()=>tone('triangle',[[300,0],[900,.35,1]],.35,.2),
+  heal_purple:()=>tone('sine',[[250,0],[500,.15],[750,.3]],.5,.25),
+  evolve:()=>tone('square',[[300,0],[450,.12],[600,.24],[900,.36]],.6,.18),
+  win:()=>tone('triangle',[[523.25,0],[659.25,.15],[783.99,.3]],.55,.2),
+  hit:()=>tone('sawtooth',[[150,0],[50,.15,1]],.15,.2),
+  buy:()=>tone('sine',[[600,0],[1200,.12,1]],.12,.15)
+};
+const playSound = t => { if(SOUNDS[t]) SOUNDS[t](); };
+document.addEventListener('click', e => { if(e.target.closest && e.target.closest('button,.clickable')) playSound('click'); }, true);
+
+/* ================= INICIALIZAÇÃO ================= */
+function showSetup(msg){
+  $('auth-screen').style.display = 'none';
+  $('setup-msg').innerHTML = msg;
+  $('setup-screen').style.display = 'flex';
+}
+window.addEventListener('load', async () => {
+  const cfg = window.REINO_CONFIG || {};
+  if(!cfg.url || !cfg.anonKey || /COLE_AQUI/.test(cfg.url + cfg.anonKey)){
+    return showSetup('Abra o arquivo <strong>config.js</strong> e preencha a <strong>Project URL</strong> e a chave <strong>anon</strong> do seu projeto Supabase. O passo a passo está no <strong>LEIA-ME.md</strong>.');
+  }
+  if(!window.supabase || !window.supabase.createClient){
+    return showSetup('Não foi possível carregar a biblioteca do Supabase (CDN). Verifique a internet e recarregue a página.');
+  }
+  sb = window.supabase.createClient(cfg.url, cfg.anonKey, {auth:{persistSession:true, autoRefreshToken:true}});
+  $('auth-name').addEventListener('blur', checkNameAvailability);
+  try{
+    const {data} = await sb.auth.getSession();
+    if(data && data.session){ await boot(); return; }
+  }catch(e){}
+  $('auth-screen').style.display = 'flex';
+});
+
+/* ================= AUTENTICAÇÃO ================= */
+function authMsg(msg, ok){ const el = $('auth-error'); el.textContent = msg || ''; el.className = ok ? 'auth-ok' : 'auth-error'; }
+function toggleAuthMode(){
+  authMode = authMode === 'login' ? 'register' : 'login';
+  const reg = authMode === 'register';
+  $('auth-name').style.display = reg ? 'block' : 'none';
+  $('auth-starter').style.display = reg ? 'block' : 'none';
+  $('auth-submit').textContent = reg ? 'Criar conta e receber meu Guardião' : 'Entrar';
+  $('auth-toggle').textContent = reg ? 'Já tenho conta — entrar' : 'Ainda não tenho conta — criar conta';
+  $('auth-sub').textContent = reg ? 'Crie sua conta de cidadão:' : 'Entre na sua conta de cidadão:';
+  $('auth-pass').autocomplete = reg ? 'new-password' : 'current-password';
+  authMsg('');
+}
+async function checkNameAvailability(){
+  const name = $('auth-name').value.trim();
+  if(!name || authMode !== 'register') return;
+  if(!NAME_RE.test(name)) return authMsg('Use de 3 a 22 letras, números, espaço, ponto, traço ou _.');
+  try{
+    const ok = await rpc('name_available', {p_name: name});
+    authMsg(ok ? '✔ Nome disponível.' : 'Esse nome não está disponível. Escolha outro.', !!ok);
+  }catch(e){}
+}
+async function handleAuth(){
+  if(busy) return;
+  authMsg('');
+  const email = $('auth-email').value.trim(), pass = $('auth-pass').value;
+  if(!email || !pass) return authMsg('Informe e-mail e senha.');
+  busy = true; $('auth-submit').disabled = true;
+  try{
+    if(authMode === 'register'){
+      const name = $('auth-name').value.trim().replace(/\s+/g, ' ');
+      if(!NAME_RE.test(name)) return authMsg('Nome inválido: use de 3 a 22 letras, números, espaço, ponto, traço ou _.');
+      if(pass.length < 8) return authMsg('A senha precisa ter pelo menos 8 caracteres.');
+      const ok = await rpc('name_available', {p_name: name});
+      if(!ok) return authMsg('Esse nome não está disponível. Escolha outro.');
+      const {data, error} = await sb.auth.signUp({email, password: pass, options:{data:{name, starter: $('auth-starter').value}}});
+      if(error) return authMsg(translateAuthError(error.message));
+      if(data.user && data.user.identities && data.user.identities.length === 0) return authMsg('Este e-mail já está cadastrado. Use "Entrar".');
+      if(!data.session) return authMsg('Conta criada! Enviamos um e-mail de confirmação: abra o link e depois volte para entrar.', true);
+    } else {
+      const {error} = await sb.auth.signInWithPassword({email, password: pass});
+      if(error) return authMsg(translateAuthError(error.message));
+    }
+  }catch(e){ return authMsg(cleanErr(e)); }
+  finally{ busy = false; $('auth-submit').disabled = false; }
+  $('auth-pass').value = '';
+  await boot();
+}
+function translateAuthError(m){
+  if(/Invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.';
+  if(/Email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).';
+  if(/already registered|already been registered/i.test(m)) return 'Este e-mail já está cadastrado. Use "Entrar".';
+  if(/Password should be/i.test(m)) return 'Senha fraca: use pelo menos 8 caracteres.';
+  if(/rate limit|too many/i.test(m)) return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
+  return cleanErr({message:m});
+}
+async function logout(){
+  try{ await sb.auth.signOut(); }catch(e){}
+  location.reload();
+}
+
+/* ================= BOOT / SINCRONIZAÇÃO ================= */
+async function boot(){
+  $('auth-screen').style.display = 'none';
+  $('game-container').style.display = 'flex';
+  if(!(await refresh())){
+    toast('Não foi possível carregar sua conta. Tente entrar de novo.');
+    $('game-container').style.display = 'none'; $('auth-screen').style.display = 'flex';
+    return;
+  }
+  if(S.battle) arena.log = ['⚔️ Você tem uma batalha em andamento. Continue de onde parou!'];
+  else arena.log = ['[Coliseu] Escolha a dificuldade e inicie uma reabilitação.'];
+  startTimers();
+  subscribeChat();
+  await loadChat(chat.cat);
+  loadRanking();
+  if(S.encounter) scheduleEncounter();
+  claimBonus();
+}
+async function refresh(silent){
+  try{
+    S = await rpc('get_state');
+    syncArena();
+    renderAll();
+    return true;
+  }catch(e){ if(!silent) toast('⚠️ ' + cleanErr(e)); return false; }
+}
+function syncArena(){
+  if(S.battle){
+    arena.eHp = S.battle.enemy_hp; arena.eMax = S.battle.enemy_max;
+    const c = findC(S.battle.creature_id);
+    if(c){ arena.pHp = c.hp; arena.pMax = c.max_hp; }
+  } else { arena.pHp = arena.pMax = arena.eHp = arena.eMax = null; }
+}
+function startTimers(){
+  clearInterval(bonusTimer); clearInterval(refreshTimer); clearInterval(chatTimer); clearInterval(rankTimer);
+  bonusTimer = setInterval(claimBonus, 120000);
+  refreshTimer = setInterval(() => { if(!document.hidden && !busy && !modalOpen()) refresh(true); }, 90000);
+  chatTimer = setInterval(() => { if(!document.hidden) fetchNewMessages(chat.cat); }, 8000);
+  rankTimer = setInterval(() => { if(!document.hidden && currentTab === 'hub') loadRanking(); }, 60000);
+}
+const modalOpen = () => $('creature-modal').style.display === 'flex' || $('rescue-modal').style.display === 'flex';
+async function claimBonus(){
+  if(document.hidden || !S) return;
+  try{
+    const r = await rpc('claim_online_bonus');
+    if(r){
+      S.profile.trdx = r.trdx; S.profile.daily_online = r.daily;
+      if(r.granted > 0) toast('🟢 Presença Online: +' + r.granted + ' TRDx (hoje: ' + r.daily + '/300)');
+      renderHeader();
+    }
+  }catch(e){}
+}
+
+/* ================= RENDER ================= */
+function renderAll(){ renderHeader(); renderHub(); renderStore(); renderCollection(); renderArena(); }
+function renderHeader(){
+  const p = me();
+  $('ui-name').textContent = p.name;
+  $('ui-title').textContent = isKing() ? '• Soberano' : '• Cidadão';
+  $('ui-avatar').textContent = isKing() ? '👑' : p.name.charAt(0).toUpperCase();
+  $('ui-sub').textContent = S.creatures.length + ' Guardiões';
+  $('ui-trdx').textContent = '💠 ' + p.trdx + ' TRDx';
+  $('ui-online').textContent = '🟢 Online: hoje ' + (p.daily_online || 0) + '/300';
+  $('ui-daily').textContent = '(Hoje: ' + (p.daily_online || 0) + '/300)';
+  $('col-count').textContent = S.creatures.length;
+  $('tab-btn-admin').style.display = isKing() ? 'block' : 'none';
+}
+function renderHub(){
+  const it = me().items || {};
+  $('ui-inventory').innerHTML = Object.keys(ITEMS).map(k => ITEMS[k].icon + ' <strong>' + esc(ITEMS[k].name) + ':</strong> ' + (it[k] || 0)).join(' &nbsp;|&nbsp; ');
+  const h = S.history || [];
+  $('ui-history').innerHTML = h.length ? h.map(x => '• ' + esc(x)).join('<br>') : 'Nenhum registro ainda.';
+}
+async function loadRanking(){
+  try{
+    ranking = await rpc('get_ranking', {p_limit: 50}) || [];
+    renderRanking();
+    $('dm-list').innerHTML = ranking.filter(r => r.name !== me().name).map(r => '<option value="' + esc(r.name) + '">').join('');
+  }catch(e){}
+}
+function renderRanking(){
+  $('ranking-list').innerHTML = '<table class="ranking-table"><tr><th>#</th><th>Cidadão</th><th>Criaturas</th><th>Nível máx.</th><th>Poder</th><th>TRDx</th></tr>' +
+    ranking.map((r,i) => '<tr class="' + (me() && r.name === me().name ? 'me' : '') + '"><td>' + (i+1) + '</td><td>' + (r.role === 'king' ? '👑 ' : '') + esc(r.name) + '</td><td>' + esc(r.creatures) + '</td><td>' + esc(r.max_level) + '</td><td>' + esc(r.power) + '</td><td style="color:var(--gold);font-weight:bold">💠 ' + esc(r.trdx) + '</td></tr>').join('') + '</table>';
+}
+function renderStore(){
+  $('store-grid').innerHTML = Object.keys(ITEMS).map(id => {
+    const it = ITEMS[id];
+    return '<div class="card" style="text-align:center"><div style="font-size:2rem">' + it.icon + '</div><h3>' + esc(it.name) + '</h3><p class="muted">' + esc(it.desc) + '</p>' +
+      '<p style="color:var(--gold);font-weight:bold;margin:6px 0">💠 ' + it.cost + ' TRDx</p>' +
+      '<p class="muted" style="margin-bottom:8px">Você tem: ' + ((me().items || {})[id] || 0) + '</p>' +
+      '<button class="btn ' + (it.gold ? 'btn-gold' : '') + '" onclick="buyItem(\'' + id + '\')">Comprar</button></div>';
+  }).join('');
+}
+function hpPct(c){ return Math.max(0, Math.min(100, c.hp / c.max_hp * 100)); }
+function renderCollection(){
+  const mode = $('sort-mode').value;
+  const list = S.creatures.slice().sort((a,b) =>
+    mode === 'level' ? (b.level - a.level) || (b.power - a.power)
+    : mode === 'recent' ? String(b.created_at).localeCompare(String(a.created_at))
+    : (b.power - a.power) || (b.level - a.level));
+  const act = me().active_creature;
+  $('collection-grid').innerHTML = list.map(c =>
+    '<div class="card clickable ' + (c.id === act ? 'active-guardian' : '') + ' ' + (c.hp <= 0 ? 'fainted' : '') + '" style="text-align:center" data-id="' + esc(c.id) + '" onclick="openCreature(this.dataset.id)">' +
+    '<div class="creature-img-box">' + artHTML(c.species, c.stage, c.stage_name) + '</div>' +
+    '<div style="font-size:1.1rem;font-weight:bold;color:var(--primary)">' + esc(c.stage_name) + (c.id === act ? ' ⭐' : '') + '</div>' +
+    '<div class="muted">' + esc(c.elem) + ' · Nível ' + c.level + ' (EXP ' + c.exp + '/' + c.exp_next + ')</div>' +
+    '<div class="hp-bar wide" style="margin:8px 0"><div class="hp-fill ' + (hpPct(c) < 30 ? 'low' : '') + '" style="width:' + hpPct(c) + '%"></div></div>' +
+    '<div style="font-size:.82rem;color:' + (c.hp > 0 ? 'var(--success)' : 'var(--danger)') + ';font-weight:bold">' + (c.hp > 0 ? '' : 'Exausto · ') + 'HP ' + c.hp + ' / ' + c.max_hp + '</div>' +
+    '<div style="margin-top:8px"><span class="power-chip">Poder Total ' + c.power + '</span></div></div>').join('');
+}
+function statTable(c){
+  const rows = [['HP', c.st_hp, c.iv_hp, c.tot_hp], ['Ataque', c.st_atk, c.iv_atk, c.tot_atk], ['Defesa', c.st_def, c.iv_def, c.tot_def], ['Velocidade', c.st_spd, c.iv_spd, c.tot_spd]];
+  return '<table class="stat-table"><tr><th>Atributo</th><th>Status</th><th>IV</th><th>Total</th></tr>' +
+    rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td class="iv">+' + r[2] + '</td><td class="tot">' + r[3] + '</td></tr>').join('') +
+    '<tr class="sum"><td>Poder Total</td><td>' + (c.st_hp + c.st_atk + c.st_def + c.st_spd) + '</td><td class="iv">+' + (c.iv_hp + c.iv_atk + c.iv_def + c.iv_spd) + '</td><td class="tot">' + c.power + '</td></tr></table>';
+}
+
+/* ================= NAVEGAÇÃO ================= */
+function openTab(id){
+  currentTab = id;
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e => e.classList.toggle('active', e.dataset.tab === id));
+  $('tab-' + id).classList.add('active');
+  if(id === 'map') showWeather(WEATHER[1]);
+  if(id === 'hub') loadRanking();
+  if(id === 'chat'){ chat.unread[chat.cat] = 0; updateCatDots(); renderChat(); fetchNewMessages(chat.cat); }
+  if(id === 'collection' || id === 'colosseum') refresh(true);
+}
+
+/* ================= CLIMA ================= */
+function showWeather(type){
+  const box = $('weather-effect'); box.innerHTML = '';
+  const add = (cls, css) => { const d = document.createElement('div'); d.className = cls; Object.assign(d.style, css); box.appendChild(d); };
+  if(type === 'rain') for(let i = 0; i < 35; i++) add('rain-drop', {left:Math.random()*100+'%', animationDuration:(.5+Math.random()*.5)+'s', animationDelay:Math.random()*2+'s'});
+  else if(type === 'wind') for(let i = 0; i < 14; i++) add('wind-line', {top:Math.random()*100+'%', animationDuration:(1.5+Math.random()*2)+'s', animationDelay:Math.random()*2+'s'});
+  else if(type === 'sun' || type === 'heat') add('sun-ray' + (type === 'heat' ? ' hot' : ''), {});
+  else if(type === 'aurora') add('aurora', {});
+}
+
+/* ================= LOJA ================= */
+async function buyItem(id){
+  const r = await act('shop_buy', {p_item: id});
+  if(!r.ok) return;
+  playSound('buy'); toast('🛒 ' + ITEMS[id].name + ' adquirida!');
+  await refresh(true);
+}
+
+/* ================= EXPLORAÇÃO E ACOLHIMENTO ================= */
+async function explore(region){
+  if(S.battle) return toast('Termine a batalha do Coliseu antes de explorar.');
+  if(S.encounter){ if(S.encounter.ready_in_ms > 0) return toast('⏳ Uma busca já está em andamento.'); return openRescueModal(); }
+  const r = await act('explore', {p_region: region});
+  if(!r.ok) return;
+  S.encounter = r.data;
+  showWeather(WEATHER[region]);
+  toast('🗺️ Procurando criatura na região ' + region + '... (' + Math.round(r.data.ready_in_ms / 1000) + 's)');
+  scheduleEncounter();
+}
+function scheduleEncounter(){
+  clearTimeout(wildTimer);
+  if(!S.encounter) return;
+  wildTimer = setTimeout(openRescueModal, Math.max(0, S.encounter.ready_in_ms) + 250);
+}
+function openRescueModal(){
+  const e = S.encounter; if(!e) return;
+  const it = me().items || {};
+  const btn = (id, cls) => '<button class="btn ' + cls + '" ' + ((it[id] || 0) <= 0 ? 'disabled' : '') + ' onclick="tryRescue(\'' + id + '\')">' + ITEMS[id].icon + ' ' + esc(ITEMS[id].name) + ' (' + (it[id] || 0) + ') · ~' + rescueChance(e.level, id) + '%</button>';
+  $('rescue-modal-content').innerHTML =
+    '<h2>🌿 Criatura Encontrada!</h2><div class="creature-img-box" style="width:100px;height:100px">' + artHTML(e.species, stageOfLevel(e.level), e.stage_name) + '</div>' +
+    '<p style="color:var(--gold);font-weight:bold;font-size:1.1rem;margin-bottom:6px">' + esc(e.stage_name) + ' (Nv.' + e.level + ')</p>' +
+    '<p class="muted" style="margin-bottom:14px">Esta criatura precisa de acolhimento humanitário e reabilitação no Reino. Os IVs só são revelados depois do acolhimento.</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' + btn('ball1', '') + btn('ball2', 'btn-gold') + btn('ball3', 'btn-success') +
+    '<button class="btn btn-danger" onclick="leaveEncounter()">Deixar Seguir Caminho</button></div>';
+  $('rescue-modal').style.display = 'flex';
+}
+function closeRescue(){ $('rescue-modal').style.display = 'none'; }
+async function leaveEncounter(){
+  closeRescue();
+  await act('flee_encounter');
+  S.encounter = null; clearTimeout(wildTimer);
+}
+async function tryRescue(ball){
+  const r = await act('rescue_attempt', {p_ball: ball});
+  if(!r.ok){ await refresh(true); if(!S.encounter) closeRescue(); return; }
+  const d = r.data;
+  await refresh(true);
+  if(d.success){ playSound('win'); closeRescue(); toast('🎉 Acolhimento realizado com sucesso! Confira na Coleção.'); }
+  else if(d.fled){ playSound('hit'); closeRescue(); toast('A criatura escapou e seguiu seu caminho.'); }
+  else { playSound('hit'); toast('⚠️ A criatura hesitou e escapou da esfera (chance: ' + d.chance + '%). Tente de novo!'); openRescueModal(); }
+}
+
+/* ================= DETALHES / CURA / EQUIPAR ================= */
+function openCreature(id){
+  const c = findC(id); if(!c) return;
+  const it = me().items || {};
+  const hb = (item, label) => '<button class="btn" style="flex:1;font-size:.75rem" onclick="healCreature(\'' + c.id + '\',\'' + item + '\')">' + label + ' (' + (it[item] || 0) + ')</button>';
+  $('creature-modal-content').innerHTML =
+    '<h2>' + esc(c.stage_name) + ' • Nv.' + c.level + '</h2>' +
+    '<div class="creature-img-box" id="detail-art" style="width:100px;height:100px">' + artHTML(c.species, c.stage, c.stage_name) + '</div>' +
+    '<p class="muted">' + esc(c.elem) + ' · Origem: <span style="color:var(--gold)">' + esc(c.origin) + '</span></p>' +
+    '<p class="muted">HP ' + c.hp + ' / ' + c.max_hp + ' · EXP ' + c.exp + '/' + c.exp_next + '</p>' +
+    statTable(c) +
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">' +
+    '<div style="display:flex;gap:6px">' + hb('potion1', '+30 HP') + hb('potion2', '+60 HP') + hb('potion3', '+120 HP') + '</div>' +
+    '<button class="btn btn-gold" onclick="healCreature(\'' + c.id + '\',\'elixir\')">✨ Elixir de Cura (' + (it.elixir || 0) + ')</button>' +
+    (c.id !== me().active_creature ? '<button class="btn btn-success" onclick="equipCreature(\'' + c.id + '\')">Equipar Guardião</button>' : '<p class="muted">⭐ Este é o seu Guardião equipado.</p>') +
+    '<button class="btn btn-danger" onclick="closeCreatureModal()">Fechar</button></div>';
+  $('creature-modal').style.display = 'flex';
+}
+function closeCreatureModal(){ $('creature-modal').style.display = 'none'; }
+async function healCreature(id, item){
+  const r = await act('heal_creature', {p_creature: id, p_item: item});
+  if(!r.ok) return;
+  const purple = item === 'elixir';
+  playSound(purple ? 'heal_purple' : 'heal_green');
+  await refresh(true);
+  openCreature(id);
+  const art = $('detail-art');
+  if(art){ const cls = purple ? 'magic-heal-purple' : 'magic-heal-green'; art.classList.add(cls); setTimeout(() => art.classList.remove(cls), 1200); }
+  toast(purple ? '✨ Elixir aplicado! Criatura totalmente restaurada.' : '🧪 Poção aplicada!');
+}
+async function equipCreature(id){
+  const r = await act('set_active', {p_creature: id});
+  if(!r.ok) return;
+  closeCreatureModal(); await refresh(true); toast('🛡️ Guardião equipado!');
+}
+
+/* ================= COLISEU ================= */
+function logLine(html){ arena.log.push(html); if(arena.log.length > 60) arena.log.shift(); renderLog(); }
+function renderLog(){ const el = $('combat-log'); el.innerHTML = arena.log.join('<br>'); el.scrollTop = el.scrollHeight; }
+function arenaCreature(){ return S.battle ? (findC(S.battle.creature_id) || activeC()) : activeC(); }
+function renderArena(){
+  const c = arenaCreature(); if(!c) return;
+  const inB = !!S.battle;
+  const pHp = inB && arena.pHp != null ? arena.pHp : c.hp, pMax = inB && arena.pMax != null ? arena.pMax : c.max_hp;
+  const eMax = inB ? arena.eMax : 0, eHp = inB ? arena.eHp : 0;
+  $('arena').innerHTML =
+    '<div><div class="creature-img-box">' + artHTML(c.species, c.stage, c.stage_name) + '</div><strong>' + esc(c.stage_name) + ' (Nv.' + c.level + ')</strong>' +
+    '<div style="color:var(--primary);font-size:.82rem">HP: ' + pHp + '/' + pMax + ' · Poder ' + c.power + '</div><div class="hp-bar"><div class="hp-fill" style="width:' + Math.max(0, pHp / pMax * 100) + '%"></div></div></div>' +
+    '<div style="font-size:1.5rem;font-weight:bold;color:var(--gold)">VS</div>' +
+    '<div><div class="creature-img-box" style="border-color:var(--danger)">🌀</div><strong>' + (inB ? 'Guardião Necessitado (Nv.' + S.battle.enemy_level + ')' : 'Aguardando...') + '</strong>' +
+    '<div style="color:var(--danger);font-size:.82rem">' + (inB ? 'HP: ' + eHp + '/' + eMax : '—') + '</div><div class="hp-bar"><div class="hp-fill enemy" style="width:' + (inB && eMax ? Math.max(0, eHp / eMax * 100) : 0) + '%"></div></div></div>';
+
+  const it = me().items || {};
+  if(!inB){
+    $('arena-controls').innerHTML =
+      '<div class="row"><select id="diff" class="select-input" style="margin:0">' +
+      Object.keys(DIFFS).map(k => '<option value="' + k + '"' + (k === (lsGet('reino_diff') || 'normal') ? ' selected' : '') + '>' + DIFFS[k] + '</option>').join('') + '</select>' +
+      '<button class="btn" onclick="startBattle()" ' + (c.hp <= 0 ? 'disabled' : '') + '>⚔️ Iniciar Reabilitação</button></div>' +
+      (c.hp <= 0 ? '<p class="muted" style="margin-top:8px">Seu Guardião está exausto. Cure-o na Coleção ou equipe outro.</p>' : '');
+  } else {
+    const opts = ['potion1','potion2','potion3','elixir'].filter(k => (it[k] || 0) > 0).map(k => '<option value="' + k + '">' + ITEMS[k].icon + ' ' + esc(ITEMS[k].name) + ' (' + it[k] + ')</option>').join('');
+    $('arena-controls').innerHTML =
+      '<div class="row"><button class="btn" onclick="battleAttack()">⚔️ Reabilitar</button>' +
+      '<select id="battle-item" class="select-input" style="margin:0"' + (opts ? '' : ' disabled') + '>' + (opts || '<option>Sem poções</option>') + '</select>' +
+      '<button class="btn btn-success" onclick="battlePotion()" ' + (opts ? '' : 'disabled') + '>🧪 Usar item</button>' +
+      '<button class="btn btn-danger" onclick="battleFlee()">Abandonar</button></div>';
+  }
+  renderLog();
+}
+async function startBattle(){
+  const diff = $('diff').value; lsSet('reino_diff', diff);
+  const r = await act('battle_start', {p_difficulty: diff});
+  if(!r.ok) return;
+  arena.log = ['⚔️ Reabilitação iniciada (' + esc(diff) + '). Boa sorte!'];
+  await refresh(true);
+}
+function applyTurn(d){
+  (d.log || []).forEach(l => logLine(esc(l)));
+  arena.pHp = d.player_hp; arena.pMax = d.player_max_hp; arena.eHp = d.enemy_hp; arena.eMax = d.enemy_max;
+}
+async function battleAttack(){
+  const r = await act('battle_attack');
+  if(!r.ok){ await refresh(true); return; }
+  playSound('hit'); await finishTurn(r.data);
+}
+async function battlePotion(){
+  const item = $('battle-item').value;
+  const r = await act('battle_potion', {p_item: item});
+  if(!r.ok){ await refresh(true); return; }
+  playSound(item === 'elixir' ? 'heal_purple' : 'heal_green'); await finishTurn(r.data);
+}
+async function finishTurn(d){
+  applyTurn(d);
+  if(d.over){
+    if(d.result === 'victory'){
+      playSound(d.evolved ? 'evolve' : 'win');
+      if(d.evolved) toast('🌟 Evolução! Seu Guardião agora é ' + d.new_name + '!');
+      else if(d.levels > 0) toast('⭐ Seu Guardião subiu de nível!');
+      else toast('🏆 Reabilitação concluída! +' + d.reward + ' TRDx');
+    } else toast('💫 Seu Guardião ficou exausto.');
+    await refresh(true);
+  } else renderArena();
+}
+async function battleFlee(){
+  const r = await act('battle_flee');
+  if(!r.ok) return;
+  arena.log = ['Você abandonou a batalha.']; await refresh(true);
+}
+
+/* ================= CHAT E DIÁRIO ================= */
+function chatList(cat){ return chat.list[cat] || (chat.list[cat] = []); }
+function addMessages(msgs){
+  msgs.forEach(m => {
+    if(chat.seen[m.id]) return;
+    chat.seen[m.id] = true;
+    const l = chatList(m.channel); l.push(m);
+    chat.lastId[m.channel] = Math.max(chat.lastId[m.channel] || 0, m.id);
+    if(m.channel !== chat.cat || currentTab !== 'chat'){ if(m.channel !== 'privado' || m.sender !== me().id) chat.unread[m.channel] = (chat.unread[m.channel] || 0) + 1; }
+  });
+  Object.keys(chat.list).forEach(k => { const l = chat.list[k]; if(l.length > 150) chat.list[k] = l.slice(-150); });
+}
+async function loadChat(cat){
+  try{
+    const {data, error} = await sb.from('messages').select('*').eq('channel', cat).order('id', {ascending:false}).limit(60);
+    if(error) throw error;
+    chat.list[cat] = []; (data || []).forEach(m => { delete chat.seen[m.id]; });
+    addMessages((data || []).reverse());
+    chat.unread[cat] = 0;                // histórico carregado não conta como "não lido"
+    renderChat(); updateCatDots();
+  }catch(e){}
+}
+async function fetchNewMessages(cat){
+  if(!sb || !S) return;
+  try{
+    const last = chat.lastId[cat] || 0;
+    const {data, error} = await sb.from('messages').select('*').eq('channel', cat).gt('id', last).order('id', {ascending:true}).limit(60);
+    if(error) throw error;
+    if(data && data.length){ addMessages(data); if(cat === chat.cat && currentTab === 'chat') chat.unread[cat] = 0; renderChat(); updateCatDots(); }
+  }catch(e){}
+}
+function subscribeChat(){
+  try{
+    sb.channel('reino-messages').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, p => {
+      if(p && p.new){ addMessages([p.new]); if(p.new.channel === chat.cat && currentTab === 'chat') chat.unread[chat.cat] = 0; renderChat(); updateCatDots(); }
+    }).subscribe();
+  }catch(e){}
+}
+function updateCatDots(){
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    const n = chat.unread[b.dataset.cat] || 0;
+    const dot = b.querySelector('.dot');
+    if(n > 0 && !dot) b.insertAdjacentHTML('beforeend', '<span class="dot"></span>');
+    if(n === 0 && dot) dot.remove();
+  });
+}
+async function switchChatCat(cat){
+  chat.cat = cat; chat.unread[cat] = 0;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  $('dm-target-bar').style.display = cat === 'privado' ? 'flex' : 'none';
+  $('chat-form-box').style.display = (cat === 'diario' && !isKing()) ? 'none' : 'flex';
+  updateCatDots(); renderChat();
+  await loadChat(cat);
+}
+function renderChat(){
+  const box = $('chat-box'); box.innerHTML = '';
+  const list = chatList(chat.cat);
+  if(!list.length){ const p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Nenhuma mensagem ainda.'; box.appendChild(p); return; }
+  list.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'msg' + (m.sender_role === 'king' ? ' king' : '') + (m.channel === 'diario' ? ' official' : '');
+    const who = document.createElement('span'); who.className = 'who';
+    let label = (m.channel === 'diario' ? '📜 [DIÁRIO OFICIAL] ' : (m.sender_role === 'king' ? '👑 ' : '')) + m.sender_name;
+    if(m.channel === 'privado') label += ' → ' + (m.recipient_name || '');
+    who.textContent = label + ': ';
+    const body = document.createElement('span'); body.textContent = m.body;
+    d.appendChild(who); d.appendChild(body); box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+async function sendChatMsg(){
+  const input = $('chat-input'); const txt = input.value.trim(); if(!txt) return;
+  const to = chat.cat === 'privado' ? $('dm-recipient').value.trim() : null;
+  if(chat.cat === 'privado' && !to) return toast('Informe o nome do destinatário.');
+  const r = await act('send_message', {p_channel: chat.cat, p_body: txt, p_to: to});
+  if(!r.ok) return;
+  input.value = ''; fetchNewMessages(chat.cat);
+}
+
+/* ================= PODERES DO SOBERANO ================= */
+async function kingIssue(){
+  const amount = parseInt($('king-amount').value, 10);
+  const r = await act('king_issue_trdx', {p_amount: amount});
+  if(!r.ok) return;
+  playSound('buy'); toast('👑 Tesouro emitido: +' + amount + ' TRDx'); await refresh(true);
+}
+async function kingSpawn(){
+  const r = await act('king_spawn_creature', {p_species: $('king-species').value, p_level: parseInt($('king-level').value, 10), p_perfect: $('king-perfect').checked});
+  if(!r.ok) return;
+  playSound('win'); toast('👑 Criatura convocada! Veja na Coleção.'); await refresh(true);
+}
+</script>
+</body>
+</html>
